@@ -156,3 +156,15 @@ lowTs = lowT_synth[np.where(abs(lowT_synth[:, idx[OP]] - 250) <= 125)[0], :]
 print("# INFO: For ", 250-125, "<=", OP, "<=", 250+125, " there are ", len(lowTn), nlab, " files and ", len(lowTs), slab, "files for lowT.")
 
 print(np.max(lowTn[:, 1]), np.max(lowTs[:, 1]), np.min(lowTn[:, 1]), np.min(lowTs[:, 1]))
+
+FuncHist.make_stairs(n, s, Nbins, ncol, scol, nlab, slab, idx, labs, 'VN', op2='SAN', op3='Ecl-clP', savename='Test\
+_cryst_shape.png')                                                                                                    
+
+FuncHist.crystallinity_scatter(n, s, ncol, scol, nmark, smark, nlab, slab, idx, labs, savename="Crystallinity_scatt\
+er_small_lowT.png")                                                                                                   
+
+FuncHist.committor_scatter(n, s, ncol, scol, nmark, smark, nlab, slab, idx, labs, 'Nq6', op2=None, data3=[bigsynth,\
+ 'purple', 's', 'big'], data4=None, savename=None)                                                                    
+
+FuncHist.committor_stairs(n, s, ncol, scol, nlab, slab, Nbins, "", idx, n2=[], s2=[], lab2=None, KS=True, savename=\
+None)                                                    

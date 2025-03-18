@@ -6,5 +6,6 @@ Files to give the cluster information
 
 
 ***harmonics.f90***, ***cluster_funcs.f90*** and ***clusterinf.f90*** give functions to make cluster
-***Wolde_full.f90*** uses these to output various metrics, can be compiled using ***Makefile***
+
+***Wolde_full.f90*** uses these to output various metrics, ***global.f90*** outputs global metrics; both can be compiled using ***Makefile***
 

@@ -1,0 +1,107 @@
+#############################
+# P R E L I M I N A R I E S #
+#############################
+
+variable ur uloop 2147
+
+shell cd run/
+
+
+variable temp equal 0.765
+
+variable N equal 100    # Timestep for thermodumps
+
+
+log tmp.log
+
+variable temp equal (0.765)
+
+
+units lj                  # Use reduced LJ style units
+atom_style atomic         # Uncharged point particles
+atom_modify map hash      # Needed for indexing of clusters etc
+                          # Used to be able to find where atoms are in relation to each other.
+
+pair_style lj/cut  3.5     
+pair_modify shift yes
+
+read_data ${ur}_seed.data
+
+pair_coeff 1  1  1.0  1.0   # Intearaction between 1 and 1 set with epsilon = 1 and sigma = 1
+
+
+
+#############################
+# F R E E Z E  S Y S T E M  #
+#############################
+
+
+compute q6 all orientorder/atom degrees 1 6 components 6 nnn NULL cutoff 1.432
+compute coord_number all coord/atom orientorder q6 0.5
+variable is_solid atom 'c_coord_number >= 8'
+
+variable solat equal v_is_solid[1684]
+
+thermo_style custom pe v_solat
+run 0
+
+group solid variable is_solid
+compute cluster solid cluster/atom 1.432
+compute clus_chunks solid chunk/atom c_cluster compress yes
+compute size_chunks solid property/chunk clus_chunks count
+variable max_n equal max(c_size_chunks)
+
+variable ll equal c_clus_chunks[1684]
+variable tst equal c_size_chunks[1]
+
+thermo_style custom pe v_max_n v_tst v_ll
+
+run 0
+
+variable i loop 1 6912
+label lp
+variable b equal c_size_chunks[$i]
+if "${b}==${max_n}" then "jump SELF out" 
+next i
+jump SELF lp
+
+
+label out
+
+print "${i} ${b} ${max_n}"
+
+
+compute clids all property/chunk clus_chunks id
+variable help equal (c_clids[v_i])
+
+thermo_style custom pe v_max_n v_ll v_help
+run 0
+
+
+variable is_cluster atom 'c_cluster == v_help'
+variable clusat equal v_is_cluster[1684]
+
+thermo_style custom pe v_max_n v_ll v_help v_clusat
+run 0
+
+
+group bigcluster variable is_cluster 
+compute peclusall bigcluster pe/atom
+
+compute pe_clus bigcluster reduce sum c_peclusall
+
+
+thermo_style custom pe v_max_n v_tst v_ll c_pe_clus
+
+variable cluster_energy equal (c_pe_clus)
+run 0 
+
+print ${cluster_energy}
+print "${ur}, ${cluster_energy}" append cluster_energy.txt
+
+variable i delete
+
+shell cd ../
+clear
+next ur
+jump SELF

@@ -1,0 +1,144 @@
+log tmp.log
+
+variable restrain equal 0.1 
+
+variable outer equal 12
+
+variable rss uloop 12000
+variable rs equal (836000+${rss})
+
+variable r equal (${rs}%13+1)
+
+variable inner equal (3.00+0.025*$r)
+
+variable temp equal (0.8)
+
+
+shell cd bigger
+
+
+units lj                  # Use reduced LJ style units
+atom_style atomic         # Uncharged point particles
+atom_modify map hash      # Needed for indexing of clusters etc 
+                          # Used to be able to find where atoms are in relation to each other.
+
+# Define a lattice with which to populate the simulation cell. With units
+# set to 'lj' the second argument to the lattice command is the reduced
+# density rho* and the spacings are multiples of that required to acheive
+# that density. Also define a simulation cell called 'box' in lattice units
+# and fill it with atoms. Here we're creating a box which is ten lattice
+# constants in each direction.
+lattice fcc 1.0 spacing 1 1 1                  # All equal sizes - gives the right reduced density.
+region box block -6 6 -6 6 -6 6 units lattice # Defines a region, "box", in lattice units
+create_box 1 box                              # Creates a simulation box as specified above,
+                                              # with one type of atom
+create_atoms 1 box                            # Creates particles on lattice points
+
+# Set the mass of the first (and only) atom type.
+mass 1 1.0
+
+pair_style lj/cut  3.5     
+pair_modify shift yes
+pair_coeff 1  1  1.0  1.0   # Intearaction between 1 and 1 set with epsilon = 1 and sigma = 1
+
+#############################
+#   M E L T   S Y S T E M   #
+#############################
+
+compute q6 all orientorder/atom degrees 1 6 components 6 nnn NULL cutoff 1.432
+compute coord_number all coord/atom orientorder q6 0.5
+variable is_solid atom 'c_coord_number >= 8'
+group solid dynamic all var is_solid every 100    # Must be dynamic to update
+compute cluster solid cluster/atom 1.432
+compute clus_chunks solid chunk/atom c_cluster compress yes
+compute size_chunks solid property/chunk clus_chunks count
+variable max_n equal max(c_size_chunks)
+# define atoms in regions
+thermo_style custom step temp press vol density ke v_max_n
+
+variable rtemp equal (4572+10*${rs})
+variable vtemp equal (8533+10*${rs})
+
+velocity all create ${temp} ${vtemp} mom yes dist gaussian # Assign velocities
+                                                     # Temperature 2.4, random number seed, zero linear momentum
+                                                     # Gaussian distribution
+
+timestep 0.002   # simulation timestep
+thermo 100       # output thermodynamic data every 100 steps
+
+# Define a fix  in this case with index 1 applied to all
+# particles in the simulation. This fix is for simulations
+# in the anisotropic NPT ensemble. Note that we use the MTK
+# correction.
+fix 1 all nph iso 5.68 5.68 0.05 mtk yes pchain 5
+fix 2 all temp/csvr ${temp} ${temp}  0.05 ${rtemp}
+
+run 10000         # run for 10000 steps
+
+# Now cut out a region and restrain it
+region INNER sphere 0.5 0.5 0.5 ${inner} units lattice
+region OUTER sphere 0.5 0.5 0.5 ${inner} side out units lattice
+
+group in region INNER
+group out region OUTER
+
+unfix 2
+unfix 1
+
+fix stop_move in spring tether 2000 0.0 0.0 0.0 0.0
+
+variable rtemp equal (94563+10*${rs})
+
+# Melt outer region
+
+velocity in create 0.0 41623 mom yes dist gaussian
+
+
+fix 1 out nph iso 5.68 5.68 0.05 mtk yes pchain 5 dilate out
+fix 2 out temp/csvr 1.6 1.6 0.05 ${rtemp}
+
+run 10000
+unfix 2
+
+# Equilibrate interface near melting temperature
+
+fix 2 out temp/csvr 1.06 1.06 0.05 ${rtemp}
+
+timestep 0.0002 # 2 fs
+thermo 100
+# eq new seed
+#fix 1 in nvt temp 0.5 0.5 0.05
+timestep 0.0002 # 2 fs (2e-8 lj time)
+thermo 1000
+unfix stop_move
+fix fix_outer out setforce 0.0 0.0 0.0
+minimize 0.0 1.0e-8 1000 100000
+
+variable rtemp equal (3743+10*${rs})
+unfix fix_outer
+fix fspring in spring tether ${restrain} 0.0 0.0 0.0 0.0
+fix 3 in nve
+# Equilibrate new seed at relelvant temperature - want to ignore I guess
+thermo 100
+print "EQ interface"
+# eq outer (interface)
+run 50000
+unfix 3
+unfix 1
+# eq all
+fix 1 all nph iso 5.68 5.68 0.05 mtk yes
+fix 2 all temp/csvr ${temp} ${temp} 0.05 ${rtemp}
+run 40000 # 8 ps
+unfix 1
+unfix 2
+unfix fspring
+
+run 0
+
+#if "${max_n} > 275 && ${max_n} < 401" then "write_restart ${rs}_${max_n}_seed.restart"
+if "${max_n} > 375 && ${max_n} < 526" then "write_data ${rs}_${max_n}_seed.data"
+
+clear 
+shell cd ../
+next rss
+jump SELF

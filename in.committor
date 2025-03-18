@@ -1,0 +1,96 @@
+#############################
+# P R E L I M I N A R I E S #
+#############################
+
+variable ur uloop 687300
+variable reps equal 300
+
+
+variable strt equal (0)
+
+variable rsr equal (${strt}*${reps}+${ur})
+variable r equal (ceil(${rsr}/${reps}))
+
+shell cd run/
+
+
+variable temp equal 0.8
+
+variable N equal 100    # Timestep for thermodumps
+
+print ${r}
+variable rtemp equal (47124+8*(${rsr}))
+variable vrand equal (abs(round(362+7.4*${rsr}*cos(26.7*${rsr})))+74)
+
+
+log tmp.log
+
+
+pair_style lj/cut  3.5      
+pair_modify shift yes
+read_data ${r}_seed.data
+
+pair_coeff 1  1  1.0  1.0   # Intearaction between 1 and 1 set with epsilon = 1 and sigma = 1           
+
+#############################
+# F R E E Z E  S Y S T E M  #
+#############################
+
+velocity all create ${temp} ${vrand} mom yes dist gaussian
+
+
+# Define solid atoms. This closely follows ten Wolde  Ruiz-Montero and Frenkel  Faraday Discuss  1996  104  93-110
+# Compute components of the per-atom q6 vector
+compute q6 all orientorder/atom degrees 1 6 components 6 nnn NULL cutoff 1.432 # compute the Q6 parameter. 
+                                                                             # Use all neighbours within 1.3 unit cell. 
+
+# get number of connections
+compute coord_number all coord/atom orientorder q6 0.5
+
+# An atom is solid if it has 8 or more connections (of a possible 14)
+variable is_solid atom c_coord_number>=8
+group solid dynamic all var is_solid every ${N}   # Must be dynamic to update
+
+# do clustering
+compute cluster solid cluster/atom 1.432 # Create a cluster where all atoms within are solid and max 1.3 units from another member
+
+# define chunks one chunk per cluster
+compute clus_chunks solid chunk/atom c_cluster nchunk every compress yes  # Says which atoms are in which chunk
+
+# count the size of each chunk
+compute size_chunks solid property/chunk clus_chunks count
+
+
+# Find the maximum entry in the vector of chunk sizes
+variable max_n equal max(c_size_chunks)
+
+
+# Thermo style which includes this variable
+ thermo_style custom step temp press vol density ke v_max_n 
+
+# thermo ${N}  # Print the thermo information every 100 steps
+
+# Reset the npt fix at a lower temperature (below freezing)
+
+fix 1 all nph iso 5.68 5.68 0.05 mtk yes pchain 5
+fix 2 all temp/csvr ${temp} ${temp} 0.05 ${rtemp}
+
+fix bigc all halt ${N} v_max_n > 5900 error continue
+fix smlc all halt ${N} v_max_n < 22 error continue
+
+#dump_modify dmp2 unwrap yes
+
+run 1250000  # Run for this many steps
+
+unfix bigc
+unfix smlc
+
+print "${max_n}" append final_r${r}_t${temp}.txt
+
+# Note run 0 can cause issues here
+
+clear 
+shell cd ../
+next ur
+jump SELF
+

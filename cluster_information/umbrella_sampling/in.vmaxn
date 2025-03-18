@@ -1,0 +1,27 @@
+
+# Define solid atoms. This closely follows ten Wolde  Ruiz-Montero and Frenkel  Faraday Discuss  1996  104  93-110
+# Compute components of the per-atom q6 vector
+compute q6 all orientorder/atom degrees 1 6 components 6 nnn NULL cutoff 1.432 # compute the Q6 parameter. 
+                                                                             # Use all neighbours within 1.3 unit cell. 
+
+# get number of connections
+compute coord_number all coord/atom orientorder q6 0.5
+
+# An atom is solid if it has 8 or more connections (of a possible 14)
+variable is_solid atom c_coord_number>=8
+group solid dynamic all var is_solid every ${N}   # Must be dynamic to update
+
+# do clustering
+compute cluster solid cluster/atom 1.432 # Create a cluster where all atoms within are solid and max 1.3 units from another member
+
+# define chunks one chunk per cluster
+compute clus_chunks solid chunk/atom c_cluster nchunk every compress yes  # Says which atoms are in which chunk
+
+# count the size of each chunk
+compute size_chunks solid property/chunk clus_chunks count
+
+# Find the maximum entry in the vector of chunk sizes
+variable max_n equal max(c_size_chunks)
+
+#fix 1rr all temp/csvr 0.765 0.765 0.05 2453
+#fix 2rr all nph iso 5.68 5.68 0.5 mtk yes pchain 5

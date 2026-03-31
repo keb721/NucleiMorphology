@@ -1,0 +1,27 @@
+#############################
+# F R E E Z E  S Y S T E M  #
+#############################
+
+variable is_cluster atom 'v_connected == 42'
+variable clusat equal v_is_cluster[1947]
+
+thermo_style custom pe v_clusat
+run 0
+
+group bigcluster variable is_cluster 
+compute peclusall bigcluster pe/atom
+
+compute pe_clus bigcluster reduce sum c_peclusall
+
+compute intra bigcluster group/group bigcluster
+
+thermo_style custom pe v_clusat c_intra c_pe_clus
+
+
+variable cluster_energy equal (c_pe_clus)
+variable itrac equal (c_intra)
+
+run 0
+
+# print ${cluster_energy}
+print "${fele}   ${cluster_energy}   ${itrac}" append unbiased_oriented_cluster_decomp_energies.dat

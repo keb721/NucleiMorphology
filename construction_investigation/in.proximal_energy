@@ -1,0 +1,70 @@
+#############################
+# F R E E Z E  S Y S T E M  #
+#############################
+
+compute q6 all orientorder/atom degrees 1 6 components 6 nnn NULL cutoff 1.432
+compute coord_number all coord/atom orientorder q6 0.5
+variable is_solid atom 'c_coord_number >= 8'
+
+variable solat equal v_is_solid[1684]
+
+thermo_style custom pe v_solat
+run 0
+
+group solid variable is_solid
+compute cluster solid cluster/atom 1.432
+compute clus_chunks solid chunk/atom c_cluster compress yes
+compute size_chunks solid property/chunk clus_chunks count
+variable max_n equal max(c_size_chunks)
+
+variable ll equal c_clus_chunks[1684]
+variable tst equal c_size_chunks[1]
+
+thermo_style custom pe v_max_n v_tst v_ll
+
+run 0
+
+variable i loop 1 6912
+label lp
+variable b equal c_size_chunks[$i]
+if "${b}==${max_n}" then "jump SELF out" 
+next i
+jump SELF lp
+
+
+label out
+
+compute clids all property/chunk clus_chunks id
+variable hhellp equal (c_clids[v_i])
+
+thermo_style custom pe v_max_n v_ll v_hhellp
+run 0
+
+
+variable is_cluster atom 'c_cluster == v_hhellp'
+variable clusat equal v_is_cluster[1684]
+
+thermo_style custom pe v_max_n v_ll v_hhellp v_clusat
+run 0
+
+
+group bigcluster variable is_cluster 
+compute peclusall bigcluster pe/atom
+
+compute pe_clus bigcluster reduce sum c_peclusall
+
+
+compute intra bigcluster group/group bigcluster
+thermo_style custom pe v_max_n v_tst v_ll c_intra c_pe_clus
+
+
+variable cluster_energy equal (c_pe_clus)
+variable itrac equal (c_intra)
+
+variable i delete
+
+run 0
+
+# print ${cluster_energy}
+print "${fele}   ${cluster_energy}   ${itrac}" append unbiased_proximal_cluster_decomp_energies.dat
+o

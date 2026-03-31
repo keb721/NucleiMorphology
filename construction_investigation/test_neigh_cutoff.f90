@@ -151,13 +151,13 @@ PROGRAM MAIN
   DEALLOCATE(cls_pos)
   
   
-    CALL EXECUTE_COMMAND_LINE("python quickhull.py "//TRIM(file)//" connected > area.txt")
+    CALL EXECUTE_COMMAND_LINE("python quickhull.py "//TRIM(file)//" oriented > area.txt")
 
   OPEN(49, file="area.txt", status='OLD')
   READ(49, *) area, vol
   CLOSE(49)
 
-  WRITE(*,*) TRIM(file), "connected", Nq6, Peters, Rogal, Nq6*Peters, Nq6*Rogal, Moroni, Nq6*Moroni, area, vol, tot_sol, sn_clus
+  WRITE(*,*) TRIM(file), "oriented", Nq6, Peters, Rogal, Nq6*Peters, Nq6*Rogal, Moroni, Nq6*Moroni, area, vol, tot_sol, sn_clus
 
   
   DEALLOCATE(cluster)  
@@ -237,13 +237,13 @@ PROGRAM MAIN
   DEALLOCATE(cls_pos)
   
   
-  CALL EXECUTE_COMMAND_LINE("python quickhull.py "//TRIM(file)//" unconnected > area.txt")
+  CALL EXECUTE_COMMAND_LINE("python quickhull.py "//TRIM(file)//" proximal > area.txt")
 
   OPEN(49, file="area.txt", status='OLD')
   READ(49, *) area, vol
   CLOSE(49)
 
-  WRITE(*,*) TRIM(file), "unconnected", Nq6, Peters, Rogal, Nq6*Peters, Nq6*Rogal, Moroni, Nq6*Moroni, area, vol, tot_sol, sn_clus
+  WRITE(*,*) TRIM(file), "proximal", Nq6, Peters, Rogal, Nq6*Peters, Nq6*Rogal, Moroni, Nq6*Moroni, area, vol, tot_sol, sn_clus
   
   DEALLOCATE(cluster)
  

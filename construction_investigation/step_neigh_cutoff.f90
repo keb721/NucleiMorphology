@@ -90,7 +90,7 @@ PROGRAM MAIN
      
      
      ! Only want size
-     WRITE(*,*) distance_cutoff, "connected", Nq6
+     WRITE(*,*) distance_cutoff, "oriented", Nq6
 
 
 
@@ -111,7 +111,7 @@ PROGRAM MAIN
 
 
      
-     WRITE(*,*) distance_cutoff, "unconnected", Nq6
+     WRITE(*,*) distance_cutoff, "proximal", Nq6
   
   END DO
  

@@ -26,4 +26,4 @@ Codes for investigating cluster construction
 
 `stepping_graph.py` creates Figure 4
 
-`Figures.py` creates all other Figures excepting Figure 1
+`Figures.py` creates all other Figures excepting Figure 1. This relies on `FuncHist.py`.

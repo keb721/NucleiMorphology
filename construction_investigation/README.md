@@ -1,4 +1,8 @@
-Codes for investigating cluster construction
+Data and Codes for investigating cluster construction
+
+## Data files
+
+Aggregate cluster property data has been placed into files corresponding to unbiased (or larger unbiased seeds, bigunb) and constructed seeds (or, similarly, larger constructed seeds, bigconstr) for both proximal and oriented clusters. The committor information is the same for each. Where cutoffs are not specified these are $\sigma_N=1.432~\sigma$, $c_s=8$ and $c_q=0.5$.
 
 ### Cluster analysis codes
 
